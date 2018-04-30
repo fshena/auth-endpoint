@@ -1,0 +1,157 @@
+openapi: 3.0.0
+info:
+  title: Auth Endpoint
+  version: 1.0.0
+  description: API endpoint handling all the authentication
+servers:
+  - url: 'http://api.localleague.local:8080'
+    description: Local development server
+  - url: 'http://api.localleague.local:8080'
+    description: Production server
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The user identifier.
+          example: 123
+        username:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: '^[a-zA-Z0-9-_]+$'
+          description: The users first name.
+          example: alan_turing
+        firstName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: '^[a-zA-Z]+$'
+          description: The users first name.
+          example: Alan
+        lastName:
+          type: string
+          minLength: 3
+          maxLength: 100
+          pattern: '^[a-zA-Z]+$'
+          description: The users last name.
+          example: Turing
+        email:
+          type: string
+          format: email
+          description: The users email address.
+          example: alan.turing@gmail.com
+        password:
+          type: string
+          description: Encrypted user password.
+          example: '4sdf4sfs@#$@'
+        avatar:
+          type: string
+          format: uri
+          description: The link to the users avatar.
+          example: 'https://s3.amazonaws.com/128.jpg'
+        roleId:
+          type: integer
+          description: The id of the role assigned to the user.
+          example: 24
+        isActive:
+          type: boolean
+          description: A flag defining if the user is activated or not.
+          example: false
+      required:
+        - username
+        - firstName
+        - lastName
+        - email
+        - password
+  responses:
+    OK:
+      description: Request is successful
+    CREATED:
+      description: Returned when the user is created successfully
+    UNAUTHORIZED:
+      description: Returned if request credentials are not valid
+    UNPROCESSABLE_ENTITY:
+      description: Returned if request is does not have a valid user object
+    JWT:
+      description: An object containing a valid JWT
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+paths:
+  /auth/signup:
+    post:
+      tags:
+        - Auth
+      summary: Store user in database.
+      description: |
+        Create user and store it in the database. Create email verification link, store it and send email to the user containing the link in order to verify and enable account.
+      operationId: postSignUp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '201':
+          $ref: '#/components/responses/CREATED'
+        '401':
+          $ref: '#/components/responses/UNAUTHORIZED'
+        '422':
+          $ref: '#/components/responses/UNPROCESSABLE_ENTITY'
+  /auth/confirm:
+    get:
+      tags:
+        - Auth
+      summary: Confirm user.
+      description: |
+        Validate that the provided token is stored in the database, if yes enable the user associated with that token and delete the token from the database.
+      operationId: getEmailConfirm
+      parameters:
+        - in: query
+          name: token
+          required: true
+          description: The token for validating the user email
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/OK'
+        '401':
+          $ref: '#/components/responses/UNAUTHORIZED'
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login user.
+      description: |
+        Login a verified user and send back a valid JWT.
+      operationId: postLogIn
+      security:
+        - BasicAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/JWT'
+        '401':
+          $ref: '#/components/responses/UNAUTHORIZED'
+  /auth/options:
+    options:
+      tags:
+        - Auth
+      summary: Endpoint's options.
+      description: |
+        Determine the options and/or requirements associated with a resource.
+      operationId: optionsAuth
+      responses:
+        '200':
+          description: A response containing the available HTTP methods for this resource.
+          headers:
+            Access-Control-Allow-Methods:
+              schema:
+                type: string
+              description: Comma separated string of the allowed HTTP methods
+tags: []
